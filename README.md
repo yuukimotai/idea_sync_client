@@ -16,6 +16,7 @@ Next.js + Material UI による **Idea 管理フロントエンド**。DDD Lite 
 - ✅ **DDD Lite アーキテクチャ** — バックエンド設計に合わせた構造
 - ✅ **Dark Mode** — Material-UI で完全なダークモード対応
 - ✅ **Ideas CRUD** — 作成・読取・更新・削除機能
+- ✅ **ポーリングチャット** — 10秒ごとの自動更新でグローバルチャット実装
 - ✅ **JWT 認証** — localStorage で token 管理
 - ✅ **TypeScript** — 型安全なコンポーネント実装
 
@@ -55,7 +56,7 @@ npm run dev
 | `/ideas/new` | 新規アイデア作成 |
 | `/ideas/[id]` | アイデア詳細 |
 | `/ideas/[id]/edit` | アイデア編集 |
-| `/chat` | グローバルチャット（WIP） |
+| `/chat` | グローバルチャット（ポーリング方式） |
 
 ## ディレクトリ構成
 
@@ -188,7 +189,7 @@ npm run lint
 
 ## 次のステップ
 
-- [ ] WebSocket チャット機能
+- [ ] チャット機能の最適化（WebSocket 検討）
 - [ ] タグ・カテゴリ機能
 - [ ] アイデア検索・フィルタリング
 - [ ] ユーザー間コラボレーション
