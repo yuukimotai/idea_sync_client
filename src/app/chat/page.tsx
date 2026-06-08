@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import type { Message } from "@/shared/types";
+import { listMessages, createMessage } from "@/infrastructure/api/message_api";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,14 +35,23 @@ export default function ChatPage() {
       return;
     }
     setIsAuthenticated(true);
-    connectWebSocket(token);
+    fetchMessages();
 
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
+    const interval = setInterval(fetchMessages, 10000);
+    setLoading(false);
+
+    return () => clearInterval(interval);
   }, [router]);
+
+  const fetchMessages = async () => {
+    try {
+      const data = await listMessages();
+      setMessages(data);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "メッセージの読み込みに失敗しました");
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,54 +61,20 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  const connectWebSocket = (token: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:2300";
-    const wsUrl = apiUrl
-      .replace("http://", "ws://")
-      .replace("https://", "wss://");
-
-    const ws = new WebSocket(`${wsUrl}/cable?token=${token}`);
-
-    ws.onopen = () => {
-      setLoading(false);
-      setError("");
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "message") {
-          setMessages((prev) => [...prev, data.message]);
-        } else if (data.type === "history") {
-          setMessages(data.messages || []);
-        }
-      } catch (err) {
-        console.error("Failed to parse message:", err);
-      }
-    };
-
-    ws.onerror = (event) => {
-      setError("チャットサーバーに接続できません");
-      console.error("WebSocket error:", event);
-    };
-
-    ws.onclose = () => {
-      setError("チャット接続が切断されました");
-    };
-
-    wsRef.current = ws;
-  };
-
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!inputValue.trim() || !wsRef.current) return;
+    if (!inputValue.trim()) return;
 
-    if (wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ body: inputValue }));
+    setIsSending(true);
+    try {
+      await createMessage(inputValue);
       setInputValue("");
-    } else {
-      setError("チャットサーバーに接続していません");
+      await fetchMessages();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "メッセージの送信に失敗しました");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -188,14 +164,14 @@ export default function ChatPage() {
                 placeholder="メッセージを入力..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                disabled={!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN}
+                disabled={isSending}
               />
               <Button
                 variant="contained"
                 type="submit"
-                disabled={!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN}
+                disabled={isSending || !inputValue.trim()}
               >
-                送信
+                {isSending ? "送信中..." : "送信"}
               </Button>
             </Box>
           </>
