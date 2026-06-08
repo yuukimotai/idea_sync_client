@@ -29,5 +29,9 @@ export async function apiCall<T>(
     throw new Error(error.message || `API error: ${response.statusText}`);
   }
 
+  if (response.status === 204) {
+    return {} as T;
+  }
+
   return response.json() as Promise<T>;
 }
