@@ -36,6 +36,36 @@ export interface MessagesResponse {
   messages: Message[];
 }
 
+// AI Chat
+export interface AiChatSession {
+  id: number;
+  account_id: number;
+  idea_id: number;
+  created_at: string;
+}
+
+export interface AiChatMessage {
+  id: number;
+  session_id: number;
+  role: "user" | "model";
+  body: string;
+  created_at: string;
+}
+
+export interface AiChatSessionResponse {
+  session: AiChatSession;
+  idea: { id: number; title: string; description: string };
+}
+
+export interface AiChatMessagesResponse {
+  messages: AiChatMessage[];
+}
+
+export interface AiChatSendResponse {
+  user_message: AiChatMessage;
+  ai_message: AiChatMessage;
+}
+
 // API Result
 export interface ApiResult<T> {
   status: string;

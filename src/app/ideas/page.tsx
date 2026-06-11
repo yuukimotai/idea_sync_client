@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Box,
   Button,
@@ -17,22 +16,22 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { listIdeas, deleteIdea } from "@/infrastructure/api/idea_api";
+import { getOrCreateSession } from "@/infrastructure/api/ai_chat_api";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 import type { Idea } from "@/shared/types";
 
 export default function IdeasPage() {
+  const { ready, logout } = useAuth();
   const router = useRouter();
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [startingChat, setStartingChat] = useState<number | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/");
-      return;
-    }
-    fetchIdeas();
-  }, [router]);
+    if (ready) fetchIdeas();
+  }, [ready]);
 
   const fetchIdeas = async () => {
     try {
@@ -40,9 +39,7 @@ export default function IdeasPage() {
       const result = await listIdeas();
       setIdeas(result.ideas || []);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "アイデアの取得に失敗しました"
-      );
+      setError(err instanceof Error ? err.message : "アイデアの取得に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -50,21 +47,26 @@ export default function IdeasPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm("本当に削除しますか？")) return;
-
     try {
       await deleteIdea(id);
       setIdeas(ideas.filter((idea) => idea.id !== id));
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "削除に失敗しました"
-      );
+      setError(err instanceof Error ? err.message : "削除に失敗しました");
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/");
+  const handleStartChat = async (ideaId: number) => {
+    setStartingChat(ideaId);
+    try {
+      const result = await getOrCreateSession(ideaId);
+      router.push(`/ai-chat/${result.session.id}?idea_id=${ideaId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "壁打ちの開始に失敗しました");
+      setStartingChat(null);
+    }
   };
+
+  if (!ready) return null;
 
   return (
     <>
@@ -73,12 +75,12 @@ export default function IdeasPage() {
           <Typography variant="h6">Idea Sync</Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button color="inherit" component={Link} href="/dashboard">
-              ダッシュボード
+              DashBoard
             </Button>
             <Button color="inherit" component={Link} href="/chat">
               チャット
             </Button>
-            <Button color="inherit" onClick={handleLogout}>
+            <Button color="inherit" onClick={logout}>
               ログアウト
             </Button>
           </Box>
@@ -88,11 +90,7 @@ export default function IdeasPage() {
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
           <Typography variant="h4">アイデア一覧</Typography>
-          <Button
-            variant="contained"
-            component={Link}
-            href="/ideas/new"
-          >
+          <Button variant="contained" component={Link} href="/ideas/new">
             新規作成
           </Button>
         </Box>
@@ -123,25 +121,22 @@ export default function IdeasPage() {
                   </Typography>
                 </CardContent>
                 <CardActions>
-                  <Button
-                    size="small"
-                    component={Link}
-                    href={`/ideas/${idea.id}`}
-                  >
+                  <Button size="small" component={Link} href={`/ideas/${idea.id}`}>
                     詳細
                   </Button>
-                  <Button
-                    size="small"
-                    component={Link}
-                    href={`/ideas/${idea.id}/edit`}
-                  >
+                  <Button size="small" component={Link} href={`/ideas/${idea.id}/edit`}>
                     編集
                   </Button>
                   <Button
                     size="small"
-                    color="error"
-                    onClick={() => handleDelete(idea.id)}
+                    variant="contained"
+                    color="secondary"
+                    disabled={startingChat === idea.id}
+                    onClick={() => handleStartChat(idea.id)}
                   >
+                    {startingChat === idea.id ? "開始中..." : "壁打ちする"}
+                  </Button>
+                  <Button size="small" color="error" onClick={() => handleDelete(idea.id)}>
                     削除
                   </Button>
                 </CardActions>

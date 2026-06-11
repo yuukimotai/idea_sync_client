@@ -26,13 +26,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await login(email, password);
-      localStorage.setItem("token", result.token);
+      await login(email, password);
       router.push("/dashboard");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "ログインに失敗しました"
-      );
+      setError(err instanceof Error ? err.message : "ログインに失敗しました");
     } finally {
       setLoading(false);
     }
@@ -73,7 +70,6 @@ export default function LoginPage() {
             margin="normal"
             required
           />
-
           <Button
             fullWidth
             variant="contained"
@@ -87,11 +83,7 @@ export default function LoginPage() {
 
         <Typography variant="body2">
           アカウントをお持ちでない場合は{" "}
-          <Link href="/auth/register">
-            <Box component="span" sx={{ color: "#90caf9", cursor: "pointer" }}>
-              登録
-            </Box>
-          </Link>
+          <Link href="/auth/register">登録</Link>
         </Typography>
       </Box>
     </Container>

@@ -33,13 +33,10 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const result = await register(email, password);
-      localStorage.setItem("token", result.token);
+      await register(email, password);
       router.push("/dashboard");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "登録に失敗しました"
-      );
+      setError(err instanceof Error ? err.message : "登録に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -89,7 +86,6 @@ export default function RegisterPage() {
             margin="normal"
             required
           />
-
           <Button
             fullWidth
             variant="contained"
@@ -103,11 +99,7 @@ export default function RegisterPage() {
 
         <Typography variant="body2">
           アカウントをお持ちの場合は{" "}
-          <Link href="/auth/login">
-            <Box component="span" sx={{ color: "#90caf9", cursor: "pointer" }}>
-              ログイン
-            </Box>
-          </Link>
+          <Link href="/auth/login">ログイン</Link>
         </Typography>
       </Box>
     </Container>
