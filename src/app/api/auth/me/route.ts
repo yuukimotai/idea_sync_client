@@ -1,14 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-function decodeJwtPayload(token: string) {
-  try {
-    const payload = token.split(".")[1];
-    return JSON.parse(Buffer.from(payload, "base64url").toString());
-  } catch {
-    return null;
-  }
-}
+const RUBY_API = process.env.RUBY_API_URL || "http://localhost:2300";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -18,17 +11,25 @@ export async function GET() {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  const payload = decodeJwtPayload(token);
-  if (!payload) {
+  // role はDBが唯一の真実なので、毎回Rubyの /api/me から取得する。
+  // これでロール変更（昇格/降格）が即座に反映される。
+  try {
+    const res = await fetch(`${RUBY_API}/api/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      return NextResponse.json({ authenticated: false }, { status: 401 });
+    }
+
+    const data = await res.json();
+    return NextResponse.json({
+      authenticated: true,
+      account_id: data.account_id,
+      email: data.email,
+      role: data.role,
+    });
+  } catch {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
-
-  if (payload.exp && payload.exp * 1000 < Date.now()) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
-  }
-
-  return NextResponse.json({
-    authenticated: true,
-    account_id: payload.account_id,
-  });
 }

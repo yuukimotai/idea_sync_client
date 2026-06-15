@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardPage() {
-  const { ready, logout } = useAuth();
+  const { ready, isAdmin, logout } = useAuth();
 
   if (!ready) return null;
 
@@ -28,6 +28,11 @@ export default function DashboardPage() {
             <Button color="inherit" component={Link} href="/chat">
               チャット
             </Button>
+            {isAdmin && (
+              <Button color="inherit" component={Link} href="/admin">
+                管理者
+              </Button>
+            )}
             <Button color="inherit" onClick={logout}>
               ログアウト
             </Button>
