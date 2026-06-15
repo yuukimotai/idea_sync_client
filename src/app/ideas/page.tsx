@@ -27,7 +27,7 @@ export default function IdeasPage() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [startingChat, setStartingChat] = useState<number | null>(null);
+  const [startingChat, setStartingChat] = useState<string | null>(null);
 
   useEffect(() => {
     if (ready) fetchIdeas();
@@ -45,7 +45,7 @@ export default function IdeasPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("本当に削除しますか？")) return;
     try {
       await deleteIdea(id);
@@ -55,7 +55,7 @@ export default function IdeasPage() {
     }
   };
 
-  const handleStartChat = async (ideaId: number) => {
+  const handleStartChat = async (ideaId: string) => {
     setStartingChat(ideaId);
     try {
       const result = await getOrCreateSession(ideaId);

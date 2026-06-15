@@ -1,6 +1,6 @@
 // Auth
 export interface Account {
-  id: number;
+  id: string;
   email: string;
 }
 
@@ -12,8 +12,8 @@ export interface AuthResponse {
 
 // Idea
 export interface Idea {
-  id: number;
-  account_id: number;
+  id: string;
+  account_id: string;
   title: string;
   description: string;
   created_at: string;
@@ -26,8 +26,8 @@ export interface IdeasResponse {
 
 // Message
 export interface Message {
-  id: number;
-  account_id: number;
+  id: string;
+  account_id: string;
   body: string;
   created_at: string;
 }
@@ -38,15 +38,15 @@ export interface MessagesResponse {
 
 // AI Chat
 export interface AiChatSession {
-  id: number;
-  account_id: number;
-  idea_id: number;
+  id: string;
+  account_id: string;
+  idea_id: string;
   created_at: string;
 }
 
 export interface AiChatMessage {
-  id: number;
-  session_id: number;
+  id: string;
+  session_id: string;
   role: "user" | "model";
   body: string;
   created_at: string;
@@ -54,7 +54,7 @@ export interface AiChatMessage {
 
 export interface AiChatSessionResponse {
   session: AiChatSession;
-  idea: { id: number; title: string; description: string };
+  idea: { id: string; title: string; description: string };
 }
 
 export interface AiChatMessagesResponse {

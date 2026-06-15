@@ -30,7 +30,7 @@ export default function EditIdeaPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const id = (Array.isArray(params.id) ? params.id[0] : params.id) ?? "";
 
   useEffect(() => {
     if (ready) {
@@ -47,7 +47,7 @@ export default function EditIdeaPage() {
     if (!title.trim()) { setError("タイトルを入力してください"); return; }
     setSaving(true);
     try {
-      await updateIdea(Number(id), title, description);
+      await updateIdea(id, title, description);
       router.push(`/ideas/${id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "更新に失敗しました");

@@ -28,8 +28,11 @@ export default function AiChatPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { ready, logout } = useAuth();
-  const sessionId = Number(params.session_id);
-  const ideaId = Number(searchParams.get("idea_id"));
+  const sessionId =
+    (Array.isArray(params.session_id)
+      ? params.session_id[0]
+      : params.session_id) ?? "";
+  const ideaId = searchParams.get("idea_id");
 
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
   const [ideaTitle, setIdeaTitle] = useState("");

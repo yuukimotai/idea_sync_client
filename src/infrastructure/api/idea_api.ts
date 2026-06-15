@@ -16,7 +16,7 @@ export async function createIdea(
 }
 
 export async function updateIdea(
-  id: number,
+  id: string,
   title: string,
   description: string
 ): Promise<{ status: string; idea: Idea }> {
@@ -26,7 +26,7 @@ export async function updateIdea(
   });
 }
 
-export async function deleteIdea(id: number): Promise<{ status: string }> {
+export async function deleteIdea(id: string): Promise<{ status: string }> {
   return apiCall(`/api/ideas/${id}`, {
     method: "DELETE",
   });
