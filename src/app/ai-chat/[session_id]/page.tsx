@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   Box,
@@ -42,15 +42,7 @@ export default function AiChatPage() {
   const [error, setError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (ready) initialize();
-  }, [ready, sessionId, ideaId]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const initialize = async () => {
+  const initialize = useCallback(async () => {
     try {
       const [sessionData, messagesData] = await Promise.all([
         ideaId ? getOrCreateSession(ideaId) : Promise.resolve(null),
@@ -63,7 +55,17 @@ export default function AiChatPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [ideaId, sessionId]);
+
+  useEffect(() => {
+    // マウント時のデータ取得。state更新はすべてawait後なのでカスケード再描画は起きない。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (ready) initialize();
+  }, [ready, initialize]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();

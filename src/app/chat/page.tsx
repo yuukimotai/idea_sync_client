@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Box,
   Button,
@@ -27,27 +27,30 @@ export default function ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!ready) return;
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 10000);
-    setLoading(false);
-    return () => clearInterval(interval);
-  }, [ready]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       const data = await listMessages();
       setMessages(data);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "メッセージの読み込みに失敗しました");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    // ポーリング開始。state更新はすべてawait後なのでカスケード再描画は起きない。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 10000);
+    return () => clearInterval(interval);
+  }, [ready, fetchMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

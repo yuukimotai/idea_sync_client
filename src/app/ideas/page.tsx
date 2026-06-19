@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Button,
@@ -29,11 +29,7 @@ export default function IdeasPage() {
   const [error, setError] = useState("");
   const [startingChat, setStartingChat] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (ready) fetchIdeas();
-  }, [ready]);
-
-  const fetchIdeas = async () => {
+  const fetchIdeas = useCallback(async () => {
     try {
       setError("");
       const result = await listIdeas();
@@ -43,7 +39,13 @@ export default function IdeasPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // マウント時のデータ取得。state更新はすべてawait後なのでカスケード再描画は起きない。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (ready) fetchIdeas();
+  }, [ready, fetchIdeas]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("本当に削除しますか？")) return;
