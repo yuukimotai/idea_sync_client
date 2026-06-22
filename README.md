@@ -18,6 +18,7 @@ Next.js + Material UI による **アイデア管理 + AI 壁打ちフロント�
 - ✅ **ロールベース表示** — `admin` のみ管理者ページに入れる（一般ユーザーは入口も非表示）
 - ✅ **Ideas CRUD** — 作成・閲覧・編集・削除
 - ✅ **AI 壁打ち** — Gemini とのタイムラインチャット
+- ✅ **リアルタイムチャット** — グローバルチャットは WebSocket（Falcon :3001）で双方向通信
 - ✅ **チャット入力** — AI 壁打ち / グローバルチャットとも複数行対応。**Enter で送信・Shift+Enter で改行**（Slack/Discord と同じ慣習）
 - ✅ **TypeScript** — 型安全なコンポーネント
 
@@ -28,16 +29,19 @@ npm install
 npm run dev   # http://localhost:3000
 ```
 
-### 環境変数（任意）
-
-BFF プロキシが Ruby API を呼ぶ先。未設定なら `http://localhost:2300`。
+### 環境変数
 
 ```env
-# .env.local（サーバーサイドでのみ使用。NEXT_PUBLIC_ ではない）
+# .env.local
+
+# BFF プロキシが Ruby API を呼ぶ先（サーバーサイドのみ。デフォルト: http://localhost:2300）
 RUBY_API_URL=http://localhost:2300
+
+# WebSocket サーバーの URL（ブラウザから直接接続。デフォルト: ws://localhost:3001/cable）
+NEXT_PUBLIC_WS_URL=ws://localhost:3001/cable
 ```
 
-> token は httpOnly Cookie で扱うため、API のベース URL をクライアントに露出する必要はない。
+> HTTP API の token は httpOnly Cookie で扱うため `RUBY_API_URL` はクライアントに露出しない。WS 認証は `/api/ws-token` route 経由でサーバーサイドから JWT を取得し `?token=` で渡す。
 
 ## URL 構造
 
@@ -66,13 +70,15 @@ src/
 │   ├── dashboard/                # ログイン後ホーム（admin のみ管理者リンク）
 │   ├── ideas/                    # 一覧 / new / [id] / [id]/edit
 │   ├── ai-chat/[session_id]/     # AI 壁打ちチャット
-│   ├── chat/                     # グローバルチャット
+│   ├── chat/                     # グローバルチャット（WS リアルタイム）
 │   ├── admin/                    # 管理者ページ（admin 限定）
 │   └── api/                      # ★ BFF（サーバーサイド）
 │       ├── auth/{login,register,logout,me}/route.ts
+│       ├── ws-token/route.ts          # httpOnly Cookie から JWT を取得（WS 認証用）
 │       └── proxy/[...path]/route.ts   # Cookie → Bearer 変換プロキシ
 ├── hooks/
-│   └── useAuth.ts                # 認証状態・role・adminOnly ガード
+│   ├── useAuth.ts                # 認証状態・role・adminOnly ガード
+│   └── useWebSocket.ts           # WS 接続管理（接続・受信・送信・クリーンアップ）
 ├── infrastructure/api/
 │   ├── client.ts                 # /api/proxy 経由の HTTP クライアント
 │   ├── auth_api.ts               # ログイン / 登録
@@ -94,7 +100,14 @@ src/
                               │  Cookie から token を読み（サーバー側）
                               │  Authorization: Bearer <token> を付けて Ruby :2300 へ転送
                               ▼
-                           Ruby API
+                           Ruby API :2300
+
+--- WebSocket（別フロー）---
+
+ブラウザ ──GET /api/ws-token──▶ Next.js（サーバーサイド）
+                              │  httpOnly Cookie から token を読んで JSON で返す
+                              ▼
+ブラウザ ──WS ws://localhost:3001/cable?token=<JWT>──▶ Falcon WS :3001
 ```
 
 - token は **JS から触れない httpOnly Cookie** にあるため `localStorage` は使わない。
@@ -140,6 +153,7 @@ DB を作り直すと account_id（UUID）が変わり既存 Cookie は無効に
 
 - [ ] 会議 RBAC（管理者ページに会議・参加者・機能ロール管理を追加）
 - [ ] アイデア検索・フィルタ
+- [ ] WS 切断時の自動再接続
 - [ ] テスト（ユニット / E2E）
 - [ ] AWS ECS/Fargate へのデプロイ
 

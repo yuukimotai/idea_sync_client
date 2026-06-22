@@ -15,11 +15,12 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import type { Message } from "@/shared/types";
-import { listMessages, createMessage } from "@/infrastructure/api/message_api";
+import { listMessages } from "@/infrastructure/api/message_api";
 
 export default function ChatPage() {
-  const { ready, logout } = useAuth();
+  const { ready } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(true);
@@ -27,26 +28,26 @@ export default function ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchMessages = useCallback(async () => {
-    try {
-      const data = await listMessages();
-      setMessages(data);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "メッセージの読み込みに失敗しました");
-    } finally {
-      setLoading(false);
-    }
+  const handleIncoming = useCallback((msg: Message) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === msg.id)) return prev;
+      return [...prev, msg];
+    });
   }, []);
+
+  const { send } = useWebSocket({
+    onMessage: handleIncoming,
+    onError: () => setError("WebSocket接続でエラーが発生しました"),
+    enabled: ready,
+  });
 
   useEffect(() => {
     if (!ready) return;
-    // ポーリング開始。state更新はすべてawait後なのでカスケード再描画は起きない。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 10000);
-    return () => clearInterval(interval);
-  }, [ready, fetchMessages]);
+    listMessages()
+      .then(setMessages)
+      .catch((err) => setError(err instanceof Error ? err.message : "メッセージの読み込みに失敗しました"))
+      .finally(() => setLoading(false));
+  }, [ready]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -54,14 +55,12 @@ export default function ChatPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    const body = inputValue.trim();
+    if (!body) return;
     setIsSending(true);
     try {
-      await createMessage(inputValue);
+      send(body);
       setInputValue("");
-      await fetchMessages();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "メッセージの送信に失敗しました");
     } finally {
       setIsSending(false);
     }
@@ -77,7 +76,6 @@ export default function ChatPage() {
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button color="inherit" component={Link} href="/dashboard">DashBoard</Button>
             <Button color="inherit" component={Link} href="/ideas">アイデア</Button>
-            <Button color="inherit" onClick={logout}>ログアウト</Button>
           </Box>
         </Toolbar>
       </AppBar>
