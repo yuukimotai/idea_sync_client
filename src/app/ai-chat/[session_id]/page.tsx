@@ -156,7 +156,7 @@ export default function AiChatPage() {
             <Box component="form" onSubmit={handleSend} sx={{ display: "flex", gap: 1 }}>
               <TextField
                 fullWidth
-                placeholder="メッセージを入力..."
+                placeholder="メッセージを入力...（Shift+Enter で改行）"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 disabled={isSending}

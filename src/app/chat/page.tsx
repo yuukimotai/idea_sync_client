@@ -103,8 +103,22 @@ export default function ChatPage() {
               )}
               <div ref={messagesEndRef} />
             </Paper>
-            <Box component="form" onSubmit={handleSendMessage} sx={{ display: "flex", gap: 1 }}>
-              <TextField fullWidth placeholder="メッセージを入力..." value={inputValue} onChange={(e) => setInputValue(e.target.value)} disabled={isSending} />
+            <Box component="form" onSubmit={handleSendMessage} sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
+              <TextField
+                fullWidth
+                placeholder="メッセージを入力...（Shift+Enter で改行）"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                disabled={isSending}
+                multiline
+                maxRows={4}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage(e);
+                  }
+                }}
+              />
               <Button variant="contained" type="submit" disabled={isSending || !inputValue.trim()}>
                 {isSending ? "送信中..." : "送信"}
               </Button>

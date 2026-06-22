@@ -18,6 +18,7 @@ Next.js + Material UI による **アイデア管理 + AI 壁打ちフロント�
 - ✅ **ロールベース表示** — `admin` のみ管理者ページに入れる（一般ユーザーは入口も非表示）
 - ✅ **Ideas CRUD** — 作成・閲覧・編集・削除
 - ✅ **AI 壁打ち** — Gemini とのタイムラインチャット
+- ✅ **チャット入力** — AI 壁打ち / グローバルチャットとも複数行対応。**Enter で送信・Shift+Enter で改行**（Slack/Discord と同じ慣習）
 - ✅ **TypeScript** — 型安全なコンポーネント
 
 ## クイックスタート
@@ -119,6 +120,9 @@ npm run start        # 本番モード
 npx tsc --noEmit     # 型チェック
 npm run lint         # ESLint
 ```
+
+CI（`.github/workflows/ci.yml`）が push / PR ごとに **型チェック + ビルド + Docker ビルド** を実行する。
+デプロイ（`deploy.yml`）は AWS 構築前のため手動トリガー（`workflow_dispatch`）。
 
 ## トラブルシューティング
 
