@@ -97,7 +97,7 @@ export default function ChatPage() {
                     <Typography variant="caption" color="textSecondary">
                       {new Date(msg.created_at).toLocaleString("ja-JP")}
                     </Typography>
-                    <Typography variant="body2">{msg.body}</Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>{msg.body}</Typography>
                   </Box>
                 ))
               )}
