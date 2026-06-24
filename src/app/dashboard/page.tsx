@@ -46,12 +46,18 @@ export default function DashboardPage() {
           <Typography variant="body1" color="textSecondary">
             アイデアを共有して、仲間とコラボレーション
           </Typography>
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
             <Button variant="contained" size="large" component={Link} href="/ideas">
               アイデアを見る
             </Button>
             <Button variant="outlined" size="large" component={Link} href="/chat">
               チャットに参加
+            </Button>
+            <Button variant="outlined" size="large" component={Link} href="/meetings/new">
+              会議を作る
+            </Button>
+            <Button variant="outlined" size="large" component={Link} href="/meetings/join">
+              会議に入室
             </Button>
           </Box>
         </Box>
