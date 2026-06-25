@@ -19,10 +19,22 @@ Next.js + Material UI による **アイデア管理 + AI 壁打ちフロント�
 - ✅ **Ideas CRUD** — 作成・閲覧・編集・削除
 - ✅ **AI 壁打ち** — Gemini とのタイムラインチャット
 - ✅ **リアルタイムチャット** — グローバルチャットは WebSocket（Falcon :3001）で双方向通信
+- ✅ **会議部屋** — パスコード発行・目的タグ付き会議部屋を作成・入室
 - ✅ **チャット入力** — AI 壁打ち / グローバルチャットとも複数行対応。**Enter で送信・Shift+Enter で改行**（Slack/Discord と同じ慣習）
 - ✅ **TypeScript** — 型安全なコンポーネント
 
 ## クイックスタート
+
+### Docker Compose（推奨）
+
+サーバーリポジトリ（`idea_sync_server`）から一括起動できる:
+
+```bash
+cd idea_sync_server
+docker compose up -d   # Next.js(:3000) / Hanami(:2300) / Falcon WS(:3001) / DB(:5433)
+```
+
+### ローカル単独起動
 
 ```bash
 npm install
@@ -41,7 +53,7 @@ RUBY_API_URL=http://localhost:2300
 NEXT_PUBLIC_WS_URL=ws://localhost:3001/cable
 ```
 
-> HTTP API の token は httpOnly Cookie で扱うため `RUBY_API_URL` はクライアントに露出しない。WS 認証は `/api/ws-token` route 経由でサーバーサイドから JWT を取得し `?token=` で渡す。
+> Docker Compose 起動時は環境変数が自動で設定される（`.env.local` 不要）。HTTP API の token は httpOnly Cookie で扱うため `RUBY_API_URL` はクライアントに露出しない。WS 認証は `/api/ws-token` route 経由でサーバーサイドから JWT を取得し `?token=` で渡す。
 
 ## URL 構造
 
@@ -57,6 +69,9 @@ NEXT_PUBLIC_WS_URL=ws://localhost:3001/cable
 | `/ideas/[id]/edit` | 編集 | 認証済み（本人） |
 | `/ai-chat/[session_id]` | AI 壁打ち | 認証済み（本人） |
 | `/chat` | グローバルチャット | 認証済み |
+| `/meetings/new` | 会議部屋作成 | 認証済み |
+| `/meetings/join` | 会議部屋入室（ID＋パスコード） | 認証済み |
+| `/meetings/[id]` | 会議部屋 | 認証済み |
 | `/admin` | 管理者ページ | **admin のみ**（非 admin は `/dashboard` へ） |
 
 ## ディレクトリ構成
@@ -71,6 +86,10 @@ src/
 │   ├── ideas/                    # 一覧 / new / [id] / [id]/edit
 │   ├── ai-chat/[session_id]/     # AI 壁打ちチャット
 │   ├── chat/                     # グローバルチャット（WS リアルタイム）
+│   ├── meetings/
+│   │   ├── new/                  #   会議部屋作成（目的タグ + 部屋名）
+│   │   ├── join/                 #   会議部屋入室（ID + パスコード）
+│   │   └── [id]/                 #   会議部屋（招待情報 / 会議コンテンツ）
 │   ├── admin/                    # 管理者ページ（admin 限定）
 │   └── api/                      # ★ BFF（サーバーサイド）
 │       ├── auth/{login,register,logout,me}/route.ts
@@ -83,9 +102,10 @@ src/
 │   ├── client.ts                 # /api/proxy 経由の HTTP クライアント
 │   ├── auth_api.ts               # ログイン / 登録
 │   ├── idea_api.ts               # Ideas CRUD
-│   └── ai_chat_api.ts            # AI 壁打ち
+│   ├── ai_chat_api.ts            # AI 壁打ち
+│   └── meeting_api.ts            # 会議 CRUD + join
 └── shared/
-    ├── types.ts                  # 型定義（ID は string）
+    ├── types.ts                  # 型定義（Meeting / MeetingParticipant 含む）
     └── theme.ts                  # softTheme（ソフトパステル + ダークアクセント）
 ```
 
@@ -127,7 +147,7 @@ const result = await apiCall<IdeasResponse>("/api/ideas", { method: "GET" });
 ## 開発フロー
 
 ```bash
-npm run dev          # 開発サーバー
+npm run dev          # 開発サーバー（:3000）
 npm run build        # ビルド
 npm run start        # 本番モード
 npx tsc --noEmit     # 型チェック
@@ -141,7 +161,8 @@ CI（`.github/workflows/ci.yml`）が push / PR ごとに **型チェック + �
 
 ### "Failed to fetch" / 401
 
-- Ruby サーバー（:2300）が起動しているか確認
+- Ruby サーバー（:2300）と Falcon WS（:3001）が起動しているか確認
+- Docker Compose を使っている場合は `idea_sync_server` 側で `docker compose up -d` を実行
 - `.env.local` の `RUBY_API_URL`（未設定なら localhost:2300）を確認
 - DevTools → Application → Cookies に `auth_token`（httpOnly）があるか確認
 
@@ -151,7 +172,8 @@ DB を作り直すと account_id（UUID）が変わり既存 Cookie は無効に
 
 ## 次のステップ
 
-- [ ] 会議 RBAC（管理者ページに会議・参加者・機能ロール管理を追加）
+- [x] 会議部屋作成・パスコード入室・会議詳細ページ
+- [ ] 会議内の機能ロール（タイムキーパー / 進行 / 書記 / 発表）
 - [ ] アイデア検索・フィルタ
 - [ ] WS 切断時の自動再接続
 - [ ] テスト（ユニット / E2E）
