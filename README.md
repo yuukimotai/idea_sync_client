@@ -70,8 +70,8 @@ NEXT_PUBLIC_WS_URL=ws://localhost:3001/cable
 | `/ai-chat/[session_id]` | AI 壁打ち | 認証済み（本人） |
 | `/chat` | グローバルチャット | 認証済み |
 | `/meetings/new` | 会議部屋作成 | 認証済み |
-| `/meetings/join` | 会議部屋入室（ID＋パスコード） | 認証済み |
-| `/meetings/[id]` | 会議部屋 | 認証済み |
+| `/meetings/join` | 会議部屋入室（ルームコード＋パスコード） | 認証済み |
+| `/meetings/[room_code]` | 会議部屋 | 認証済み |
 | `/admin` | 管理者ページ | **admin のみ**（非 admin は `/dashboard` へ） |
 
 ## ディレクトリ構成

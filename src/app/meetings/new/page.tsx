@@ -30,7 +30,7 @@ export default function NewMeetingPage() {
     setError("");
     try {
       const meeting = await createMeeting({ title: fullTitle, purpose });
-      router.push(`/meetings/${meeting.id}`);
+      router.push(`/meetings/${meeting.room_code}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "作成に失敗しました");
     } finally {

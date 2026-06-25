@@ -77,6 +77,7 @@ export const MEETING_PURPOSE_LABELS: Record<MeetingPurpose, string> = {
 
 export interface Meeting {
   id: string;
+  room_code: string;
   idea_id: string | null;
   created_by: string;
   title: string;

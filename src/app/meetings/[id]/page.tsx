@@ -76,8 +76,10 @@ export default function MeetingRoomPage() {
               <Divider sx={{ my: 1 }} />
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                  <Typography variant="body2" color="textSecondary" sx={{ width: 120 }}>ミーティングID</Typography>
-                  <Typography variant="body2" sx={{ fontFamily: "monospace" }}>{meeting.id}</Typography>
+                  <Typography variant="body2" color="textSecondary" sx={{ width: 120 }}>ルームコード</Typography>
+                  <Typography variant="h6" sx={{ fontFamily: "monospace", letterSpacing: "0.15em" }}>
+                    {meeting.room_code}
+                  </Typography>
                 </Box>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                   <Typography variant="body2" color="textSecondary" sx={{ width: 120 }}>パスコード</Typography>

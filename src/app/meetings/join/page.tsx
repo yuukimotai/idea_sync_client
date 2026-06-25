@@ -13,19 +13,19 @@ import { joinMeeting } from "@/infrastructure/api/meeting_api";
 export default function JoinMeetingPage() {
   const router = useRouter();
   const { ready, logout } = useAuth();
-  const [meetingId, setMeetingId] = useState("");
+  const [roomCode, setRoomCode] = useState("");
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!meetingId.trim() || !passcode.trim()) return;
+    if (!roomCode.trim() || !passcode.trim()) return;
     setSubmitting(true);
     setError("");
     try {
-      await joinMeeting(meetingId.trim(), passcode.trim().toUpperCase());
-      router.push(`/meetings/${meetingId.trim()}`);
+      await joinMeeting(roomCode.trim().toUpperCase(), passcode.trim().toUpperCase());
+      router.push(`/meetings/${roomCode.trim().toUpperCase()}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "入室に失敗しました");
     } finally {
@@ -54,12 +54,13 @@ export default function JoinMeetingPage() {
         <Paper sx={{ p: 3 }} component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="ミーティングID"
-            value={meetingId}
-            onChange={(e) => setMeetingId(e.target.value)}
+            label="ルームコード"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
             sx={{ mb: 2 }}
             required
-            placeholder="例: 019ef86c-fff5-7c6f-..."
+            placeholder="例: AB12CD34EF56"
+            slotProps={{ htmlInput: { maxLength: 12, style: { letterSpacing: "0.15em", fontFamily: "monospace" } } }}
           />
           <TextField
             fullWidth
@@ -75,7 +76,7 @@ export default function JoinMeetingPage() {
             type="submit"
             variant="contained"
             fullWidth
-            disabled={submitting || !meetingId.trim() || !passcode.trim()}
+            disabled={submitting || !roomCode.trim() || !passcode.trim()}
           >
             {submitting ? "入室中..." : "入室する"}
           </Button>
