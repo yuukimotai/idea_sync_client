@@ -146,8 +146,7 @@ export default function MeetingRoomPage() {
                               </Typography>
                             </Box>
                           }
-                          secondary={msg.body}
-                          secondaryTypographyProps={{ color: "text.primary" }}
+                          secondary={<Typography variant="body2" color="text.primary" sx={{ whiteSpace: "pre-wrap" }}>{msg.body}</Typography>}
                         />
                       </ListItem>
                     ))}
@@ -160,7 +159,9 @@ export default function MeetingRoomPage() {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="メッセージを入力..."
+                  multiline
+                  maxRows={4}
+                  placeholder="メッセージを入力... (Shift+Enter で改行)"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}

@@ -18,8 +18,8 @@ Next.js + Material UI による **アイデア管理 + AI 壁打ちフロント�
 - ✅ **ロールベース表示** — `admin` のみ管理者ページに入れる（一般ユーザーは入口も非表示）
 - ✅ **Ideas CRUD** — 作成・閲覧・編集・削除
 - ✅ **AI 壁打ち** — Gemini とのタイムラインチャット
-- ✅ **リアルタイムチャット** — グローバルチャットは WebSocket（Falcon :3001）で双方向通信
-- ✅ **会議部屋** — パスコード発行・目的タグ付き会議部屋を作成・入室
+- ✅ **リアルタイムチャット** — グローバルチャット・会議室チャットともに WebSocket（Falcon :3001）で双方向通信。ルームコード単位でスコープ分離
+- ✅ **会議部屋** — パスコード発行・目的タグ付き会議部屋を作成・入室・リアルタイムチャット
 - ✅ **チャット入力** — AI 壁打ち / グローバルチャットとも複数行対応。**Enter で送信・Shift+Enter で改行**（Slack/Discord と同じ慣習）
 - ✅ **TypeScript** — 型安全なコンポーネント
 
@@ -89,7 +89,7 @@ src/
 │   ├── meetings/
 │   │   ├── new/                  #   会議部屋作成（目的タグ + 部屋名）
 │   │   ├── join/                 #   会議部屋入室（ID + パスコード）
-│   │   └── [id]/                 #   会議部屋（招待情報 / 会議コンテンツ）
+│   │   └── [id]/                 #   会議部屋（招待情報 + WS リアルタイムチャット）
 │   ├── admin/                    # 管理者ページ（admin 限定）
 │   └── api/                      # ★ BFF（サーバーサイド）
 │       ├── auth/{login,register,logout,me}/route.ts
@@ -97,7 +97,7 @@ src/
 │       └── proxy/[...path]/route.ts   # Cookie → Bearer 変換プロキシ
 ├── hooks/
 │   ├── useAuth.ts                # 認証状態・role・adminOnly ガード
-│   └── useWebSocket.ts           # WS 接続管理（接続・受信・送信・クリーンアップ）
+│   └── useWebSocket.ts           # WS 接続管理（接続・受信・送信・クリーンアップ）meetingId でルームスコープ対応
 ├── infrastructure/api/
 │   ├── client.ts                 # /api/proxy 経由の HTTP クライアント
 │   ├── auth_api.ts               # ログイン / 登録
@@ -127,7 +127,8 @@ src/
 ブラウザ ──GET /api/ws-token──▶ Next.js（サーバーサイド）
                               │  httpOnly Cookie から token を読んで JSON で返す
                               ▼
-ブラウザ ──WS ws://localhost:3001/cable?token=<JWT>──▶ Falcon WS :3001
+ブラウザ ──WS ws://localhost:3001/cable?token=<JWT>──────────────▶ Falcon WS :3001  (グローバルチャット)
+ブラウザ ──WS ws://localhost:3001/cable?token=<JWT>&room_code=<code>──▶ Falcon WS :3001  (会議室チャット)
 ```
 
 - token は **JS から触れない httpOnly Cookie** にあるため `localStorage` は使わない。
@@ -174,6 +175,7 @@ DB を作り直すと account_id（UUID）が変わり既存 Cookie は無効に
 
 - [x] 会議部屋作成・パスコード入室・会議詳細ページ
 - [x] ルームコード（12文字英数字）によるシンプルな入室フロー
+- [x] 会議室 WS チャット（ルームコード単位でスコープ分離・履歴永続化）
 - [ ] 会議内の機能ロール（タイムキーパー / 進行 / 書記 / 発表）
 - [ ] アイデア検索・フィルタ
 - [ ] WS 切断時の自動再接続
