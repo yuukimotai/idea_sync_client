@@ -1,5 +1,5 @@
 import { apiCall } from "./client";
-import type { Meeting, MeetingResponse, MeetingJoinResponse, MeetingPurpose } from "@/shared/types";
+import type { Meeting, Message, MeetingResponse, MeetingJoinResponse, MeetingPurpose, MessagesResponse } from "@/shared/types";
 
 export async function createMeeting(params: {
   title: string;
@@ -25,4 +25,11 @@ export async function joinMeeting(id: string, passcode: string): Promise<Meeting
     method: "POST",
     body: JSON.stringify({ passcode }),
   });
+}
+
+export async function listMeetingMessages(roomCode: string): Promise<Message[]> {
+  const res = await apiCall<MessagesResponse>(`/api/meetings/${roomCode}/messages`, {
+    method: "GET",
+  });
+  return res.messages;
 }

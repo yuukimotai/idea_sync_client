@@ -28,6 +28,7 @@ export interface IdeasResponse {
 export interface Message {
   id: string;
   account_id: string;
+  meeting_id: string | null;
   body: string;
   created_at: string;
 }

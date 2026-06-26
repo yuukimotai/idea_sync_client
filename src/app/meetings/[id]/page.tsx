@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
   AppBar, Toolbar, Typography, Button, Container, Box,
-  Paper, Chip, CircularProgress, Alert, Divider,
+  Paper, Chip, CircularProgress, Alert, Divider, TextField, IconButton,
+  List, ListItem, ListItemText,
 } from "@mui/material";
+import SendIcon from "@mui/icons-material/Send";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { getMeeting } from "@/infrastructure/api/meeting_api";
-import { MEETING_PURPOSE_LABELS, type Meeting } from "@/shared/types";
+import { getMeeting, listMeetingMessages } from "@/infrastructure/api/meeting_api";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { MEETING_PURPOSE_LABELS, type Meeting, type Message } from "@/shared/types";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "準備中",
@@ -29,14 +32,42 @@ export default function MeetingRoomPage() {
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!ready) return;
     getMeeting(id)
-      .then(setMeeting)
+      .then(async (m) => {
+        setMeeting(m);
+        const history = await listMeetingMessages(m.room_code);
+        setMessages(history);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "取得に失敗しました"))
       .finally(() => setLoading(false));
   }, [ready, id]);
+
+  const handleMessage = useCallback((msg: Message) => {
+    setMessages((prev) => [...prev, msg]);
+  }, []);
+
+  const { send } = useWebSocket({
+    onMessage: handleMessage,
+    enabled: ready && !!meeting,
+    meetingId: meeting?.room_code,
+  });
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = () => {
+    const body = input.trim();
+    if (!body) return;
+    send(body);
+    setInput("");
+  };
 
   if (!ready) return null;
 
@@ -90,10 +121,54 @@ export default function MeetingRoomPage() {
               </Box>
             </Paper>
 
-            <Paper sx={{ p: 3, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 200 }}>
-              <Typography color="textSecondary">
-                （会議機能は準備中です）
-              </Typography>
+            <Paper sx={{ display: "flex", flexDirection: "column", height: 420 }}>
+              <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
+                <Typography variant="subtitle2">会議チャット</Typography>
+              </Box>
+
+              <Box sx={{ flex: 1, overflowY: "auto", px: 1 }}>
+                {messages.length === 0 ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+                    <Typography variant="body2" color="textSecondary">メッセージはまだありません</Typography>
+                  </Box>
+                ) : (
+                  <List dense disablePadding>
+                    {messages.map((msg) => (
+                      <ListItem key={msg.id} alignItems="flex-start" sx={{ py: 0.5 }}>
+                        <ListItemText
+                          primary={
+                            <Box component="span" sx={{ display: "flex", gap: 1, alignItems: "baseline" }}>
+                              <Typography variant="caption" color="textSecondary" sx={{ fontFamily: "monospace" }}>
+                                {msg.account_id.slice(0, 8)}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                {new Date(msg.created_at).toLocaleTimeString("ja-JP")}
+                              </Typography>
+                            </Box>
+                          }
+                          secondary={msg.body}
+                          secondaryTypographyProps={{ color: "text.primary" }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+                <div ref={messagesEndRef} />
+              </Box>
+
+              <Box sx={{ display: "flex", gap: 1, p: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="メッセージを入力..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                />
+                <IconButton color="primary" onClick={handleSend} disabled={!input.trim()}>
+                  <SendIcon />
+                </IconButton>
+              </Box>
             </Paper>
           </>
         )}

@@ -9,9 +9,10 @@ type Options = {
   onMessage: (msg: Message) => void;
   onError?: (err: Event) => void;
   enabled: boolean;
+  meetingId?: string; // room_code。省略時はグローバルチャット
 };
 
-export function useWebSocket({ onMessage, onError, enabled }: Options) {
+export function useWebSocket({ onMessage, onError, enabled, meetingId }: Options) {
   const wsRef = useRef<WebSocket | null>(null);
   const onMessageRef = useRef(onMessage);
   const onErrorRef = useRef(onError);
@@ -25,7 +26,10 @@ export function useWebSocket({ onMessage, onError, enabled }: Options) {
     if (!res.ok) return;
     const { token } = await res.json();
 
-    const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
+    const url = meetingId
+      ? `${WS_URL}?token=${encodeURIComponent(token)}&room_code=${encodeURIComponent(meetingId)}`
+      : `${WS_URL}?token=${encodeURIComponent(token)}`;
+    const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onmessage = (event) => {
@@ -44,7 +48,7 @@ export function useWebSocket({ onMessage, onError, enabled }: Options) {
     ws.onclose = () => {
       wsRef.current = null;
     };
-  }, []);
+  }, [meetingId]);
 
   const send = useCallback((body: string) => {
     wsRef.current?.send(JSON.stringify({ body }));
@@ -57,7 +61,7 @@ export function useWebSocket({ onMessage, onError, enabled }: Options) {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [enabled, connect]);
+  }, [enabled, connect, meetingId]);
 
   return { send };
 }
