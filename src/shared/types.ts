@@ -96,8 +96,36 @@ export interface MeetingParticipant {
   roles: string[];
 }
 
+export type MeetingFunctionalRole = "facilitator" | "timekeeper" | "secretary" | "presenter";
+
+export const MEETING_ROLE_LABELS: Record<MeetingFunctionalRole, string> = {
+  facilitator: "進行",
+  timekeeper: "タイムキーパー",
+  secretary: "書記",
+  presenter: "発表",
+};
+
+export const MEETING_FUNCTIONAL_ROLES: MeetingFunctionalRole[] = [
+  "facilitator", "timekeeper", "secretary", "presenter",
+];
+
+export interface MeetingCapabilities {
+  view: boolean;
+  progress_meeting: boolean;
+  control_timer: boolean;
+  edit_minutes: boolean;
+  control_presentation: boolean;
+  manage_roles: boolean;
+}
+
 export interface MeetingResponse {
   meeting: Meeting;
+}
+
+export interface MeetingDetailResponse {
+  meeting: Meeting;
+  participants: MeetingParticipant[];
+  capabilities: MeetingCapabilities;
 }
 
 export interface MeetingJoinResponse {

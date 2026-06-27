@@ -5,14 +5,19 @@ import { useParams } from "next/navigation";
 import {
   AppBar, Toolbar, Typography, Button, Container, Box,
   Paper, Chip, CircularProgress, Alert, Divider, TextField, IconButton,
-  List, ListItem, ListItemText,
+  List, ListItem, ListItemText, Tooltip,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { getMeeting, listMeetingMessages } from "@/infrastructure/api/meeting_api";
+import { getMeetingDetail, assignRole, revokeRole, listMeetingMessages } from "@/infrastructure/api/meeting_api";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { MEETING_PURPOSE_LABELS, type Meeting, type Message } from "@/shared/types";
+import {
+  MEETING_PURPOSE_LABELS, MEETING_ROLE_LABELS, MEETING_FUNCTIONAL_ROLES,
+  type Meeting, type MeetingParticipant, type MeetingCapabilities, type Message,
+} from "@/shared/types";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "準備中",
@@ -30,23 +35,36 @@ export default function MeetingRoomPage() {
   const { id } = useParams<{ id: string }>();
   const { ready, logout } = useAuth();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
+  const [participants, setParticipants] = useState<MeetingParticipant[]>([]);
+  const [capabilities, setCapabilities] = useState<MeetingCapabilities | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [roleLoading, setRoleLoading] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const loadDetail = useCallback(async () => {
+    const detail = await getMeetingDetail(id);
+    setMeeting(detail.meeting);
+    setParticipants(detail.participants);
+    setCapabilities(detail.capabilities);
+  }, [id]);
 
   useEffect(() => {
     if (!ready) return;
-    getMeeting(id)
-      .then(async (m) => {
-        setMeeting(m);
-        const history = await listMeetingMessages(m.room_code);
+    (async () => {
+      try {
+        await loadDetail();
+        const history = await listMeetingMessages(id);
         setMessages(history);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "取得に失敗しました"))
-      .finally(() => setLoading(false));
-  }, [ready, id]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "取得に失敗しました");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [ready, id, loadDetail]);
 
   const handleMessage = useCallback((msg: Message) => {
     setMessages((prev) => [...prev, msg]);
@@ -69,6 +87,22 @@ export default function MeetingRoomPage() {
     setInput("");
   };
 
+  const handleRoleToggle = async (accountId: string, role: string, hasRole: boolean) => {
+    if (!meeting) return;
+    const key = `${accountId}:${role}`;
+    setRoleLoading(key);
+    try {
+      const updated = hasRole
+        ? await revokeRole(meeting.room_code, accountId, role)
+        : await assignRole(meeting.room_code, accountId, role);
+      setParticipants((prev) => prev.map((p) => p.account_id === updated.account_id ? updated : p));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "ロール更新に失敗しました");
+    } finally {
+      setRoleLoading(null);
+    }
+  };
+
   if (!ready) return null;
 
   return (
@@ -85,7 +119,7 @@ export default function MeetingRoomPage() {
 
       <Container maxWidth="md" sx={{ py: 4 }}>
         {loading && <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>}
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>{error}</Alert>}
         {meeting && (
           <>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
@@ -100,6 +134,7 @@ export default function MeetingRoomPage() {
               目的：{MEETING_PURPOSE_LABELS[meeting.purpose]}
             </Typography>
 
+            {/* 招待情報 */}
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="subtitle2" color="textSecondary" gutterBottom>
                 招待情報（参加者に共有してください）
@@ -121,6 +156,55 @@ export default function MeetingRoomPage() {
               </Box>
             </Paper>
 
+            {/* 参加者 & ロール管理 */}
+            {participants.length > 0 && (
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  参加者{capabilities?.manage_roles && "　（クリックでロール付与 / はく奪）"}
+                </Typography>
+                <Divider sx={{ my: 1 }} />
+                <List dense disablePadding>
+                  {participants.map((p) => (
+                    <ListItem key={p.id} disableGutters sx={{ flexDirection: "column", alignItems: "flex-start", py: 1 }}>
+                      <Typography variant="caption" color="textSecondary" sx={{ fontFamily: "monospace", mb: 0.5 }}>
+                        {p.account_id.slice(0, 8)}
+                      </Typography>
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {MEETING_FUNCTIONAL_ROLES.map((role) => {
+                          const has = p.roles.includes(role);
+                          const key = `${p.account_id}:${role}`;
+                          const busy = roleLoading === key;
+                          if (capabilities?.manage_roles) {
+                            return (
+                              <Tooltip key={role} title={has ? `${MEETING_ROLE_LABELS[role]}をはく奪` : `${MEETING_ROLE_LABELS[role]}を付与`}>
+                                <Chip
+                                  label={MEETING_ROLE_LABELS[role]}
+                                  size="small"
+                                  color={has ? "primary" : "default"}
+                                  variant={has ? "filled" : "outlined"}
+                                  disabled={busy}
+                                  icon={has ? <RemoveIcon /> : <AddIcon />}
+                                  onClick={() => handleRoleToggle(p.account_id, role, has)}
+                                  sx={{ cursor: "pointer" }}
+                                />
+                              </Tooltip>
+                            );
+                          }
+                          return has ? (
+                            <Chip key={role} label={MEETING_ROLE_LABELS[role]} size="small" color="primary" />
+                          ) : null;
+                        })}
+                        {!capabilities?.manage_roles && p.roles.length === 0 && (
+                          <Typography variant="caption" color="textSecondary">ロールなし</Typography>
+                        )}
+                      </Box>
+                    </ListItem>
+                  ))}
+                </List>
+              </Paper>
+            )}
+
+            {/* チャット */}
             <Paper sx={{ display: "flex", flexDirection: "column", height: 420 }}>
               <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
                 <Typography variant="subtitle2">会議チャット</Typography>

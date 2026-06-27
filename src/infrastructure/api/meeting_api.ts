@@ -1,5 +1,8 @@
 import { apiCall } from "./client";
-import type { Meeting, Message, MeetingResponse, MeetingJoinResponse, MeetingPurpose, MessagesResponse } from "@/shared/types";
+import type {
+  Meeting, Message, MeetingResponse, MeetingDetailResponse,
+  MeetingJoinResponse, MeetingParticipant, MeetingPurpose, MessagesResponse,
+} from "@/shared/types";
 
 export async function createMeeting(params: {
   title: string;
@@ -13,11 +16,24 @@ export async function createMeeting(params: {
   return res.meeting;
 }
 
-export async function getMeeting(id: string): Promise<Meeting> {
-  const res = await apiCall<MeetingResponse>(`/api/meetings/${id}`, {
-    method: "GET",
+export async function getMeetingDetail(id: string): Promise<MeetingDetailResponse> {
+  return apiCall<MeetingDetailResponse>(`/api/meetings/${id}`, { method: "GET" });
+}
+
+export async function assignRole(meetingId: string, accountId: string, role: string): Promise<MeetingParticipant> {
+  const res = await apiCall<{ participant: MeetingParticipant }>(`/api/meetings/${meetingId}/roles`, {
+    method: "POST",
+    body: JSON.stringify({ account_id: accountId, role }),
   });
-  return res.meeting;
+  return res.participant;
+}
+
+export async function revokeRole(meetingId: string, accountId: string, role: string): Promise<MeetingParticipant> {
+  const res = await apiCall<{ participant: MeetingParticipant }>(`/api/meetings/${meetingId}/roles`, {
+    method: "DELETE",
+    body: JSON.stringify({ account_id: accountId, role }),
+  });
+  return res.participant;
 }
 
 export async function joinMeeting(id: string, passcode: string): Promise<MeetingJoinResponse> {

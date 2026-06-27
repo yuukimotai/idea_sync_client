@@ -19,8 +19,8 @@ async function proxyRequest(req: NextRequest, path: string[]) {
   }
 
   const body =
-    req.method !== "GET" && req.method !== "DELETE"
-      ? await req.text()
+    req.method !== "GET"
+      ? await req.text() || undefined
       : undefined;
 
   const res = await fetch(url, { method: req.method, headers, body });
