@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { WsStatusChip } from "@/components/WsStatusChip";
 import type { Message } from "@/shared/types";
 import { listMessages } from "@/infrastructure/api/message_api";
 
@@ -35,7 +36,7 @@ export default function ChatPage() {
     });
   }, []);
 
-  const { send } = useWebSocket({
+  const { send, status } = useWebSocket({
     onMessage: handleIncoming,
     onError: () => setError("WebSocket接続でエラーが発生しました"),
     enabled: ready,
@@ -80,7 +81,10 @@ export default function ChatPage() {
         </Toolbar>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 4, display: "flex", flexDirection: "column", height: "calc(100vh - 100px)" }}>
-        <Typography variant="h4" sx={{ mb: 2 }}>グローバルチャット</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+          <Typography variant="h4">グローバルチャット</Typography>
+          <WsStatusChip status={status} />
+        </Box>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress /></Box>

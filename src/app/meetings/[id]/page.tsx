@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { getMeetingDetail, assignRole, revokeRole, listMeetingMessages } from "@/infrastructure/api/meeting_api";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { WsStatusChip } from "@/components/WsStatusChip";
 import {
   MEETING_PURPOSE_LABELS, MEETING_ROLE_LABELS, MEETING_FUNCTIONAL_ROLES,
   type Meeting, type MeetingParticipant, type MeetingCapabilities, type Message,
@@ -70,7 +71,7 @@ export default function MeetingRoomPage() {
     setMessages((prev) => [...prev, msg]);
   }, []);
 
-  const { send } = useWebSocket({
+  const { send, status: wsStatus } = useWebSocket({
     onMessage: handleMessage,
     enabled: ready && !!meeting,
     meetingId: meeting?.room_code,
@@ -206,8 +207,9 @@ export default function MeetingRoomPage() {
 
             {/* チャット */}
             <Paper sx={{ display: "flex", flexDirection: "column", height: 420 }}>
-              <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
+              <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="subtitle2">会議チャット</Typography>
+                <WsStatusChip status={wsStatus} />
               </Box>
 
               <Box sx={{ flex: 1, overflowY: "auto", px: 1 }}>
