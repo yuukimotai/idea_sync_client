@@ -13,13 +13,25 @@ import {
   Toolbar,
   CircularProgress,
   Alert,
+  TextField,
+  MenuItem,
+  InputAdornment,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import Link from "next/link";
-import { listIdeas, deleteIdea } from "@/infrastructure/api/idea_api";
+import { listIdeas, deleteIdea, type IdeaSort } from "@/infrastructure/api/idea_api";
 import { getOrCreateSession } from "@/infrastructure/api/ai_chat_api";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import type { Idea } from "@/shared/types";
+
+// 並び替えの選択肢（sort + order の組み合わせ）
+const SORT_OPTIONS = [
+  { value: "created_desc", label: "作成が新しい順", sort: "created_at" as IdeaSort, order: "desc" as const },
+  { value: "created_asc",  label: "作成が古い順",   sort: "created_at" as IdeaSort, order: "asc" as const },
+  { value: "updated_desc", label: "更新が新しい順", sort: "updated_at" as IdeaSort, order: "desc" as const },
+  { value: "title_asc",    label: "タイトル順",     sort: "title" as IdeaSort,      order: "asc" as const },
+];
 
 export default function IdeasPage() {
   const { ready, logout } = useAuth();
@@ -28,11 +40,14 @@ export default function IdeasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [startingChat, setStartingChat] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [sortValue, setSortValue] = useState("created_desc");
 
-  const fetchIdeas = useCallback(async () => {
+  const fetchIdeas = useCallback(async (q: string, sortVal: string) => {
     try {
       setError("");
-      const result = await listIdeas();
+      const opt = SORT_OPTIONS.find((o) => o.value === sortVal) ?? SORT_OPTIONS[0];
+      const result = await listIdeas({ q: q.trim() || undefined, sort: opt.sort, order: opt.order });
       setIdeas(result.ideas || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "アイデアの取得に失敗しました");
@@ -41,11 +56,12 @@ export default function IdeasPage() {
     }
   }, []);
 
+  // 検索は入力から 300ms 待ってから発火（デバウンス）。並び替えは即時
   useEffect(() => {
-    // マウント時のデータ取得。state更新はすべてawait後なのでカスケード再描画は起きない。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (ready) fetchIdeas();
-  }, [ready, fetchIdeas]);
+    if (!ready) return;
+    const timer = setTimeout(() => fetchIdeas(query, sortValue), 300);
+    return () => clearTimeout(timer);
+  }, [ready, query, sortValue, fetchIdeas]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("本当に削除しますか？")) return;
@@ -99,16 +115,51 @@ export default function IdeasPage() {
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
+        {/* 検索・並び替え */}
+        <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="タイトル・説明で検索..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+          <TextField
+            select
+            size="small"
+            value={sortValue}
+            onChange={(e) => setSortValue(e.target.value)}
+            sx={{ minWidth: 180 }}
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+            ))}
+          </TextField>
+        </Box>
+
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress />
           </Box>
         ) : ideas.length === 0 ? (
+          query.trim() ? (
+            <Alert severity="info">「{query.trim()}」に一致するアイデアはありません</Alert>
+          ) : (
           <Alert severity="info">
             アイデアがまだありません。
             <Link href="/ideas/new">新規作成</Link>
             しましょう
           </Alert>
+          )
         ) : (
           <Box sx={{ display: "grid", gap: 2 }}>
             {ideas.map((idea) => (

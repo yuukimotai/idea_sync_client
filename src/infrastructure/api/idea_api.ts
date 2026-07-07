@@ -1,8 +1,21 @@
 import { apiCall } from "./client";
 import type { IdeasResponse, Idea } from "@/shared/types";
 
-export async function listIdeas(): Promise<IdeasResponse> {
-  return apiCall("/api/ideas");
+export type IdeaSort = "created_at" | "updated_at" | "title";
+
+export type ListIdeasParams = {
+  q?: string;
+  sort?: IdeaSort;
+  order?: "asc" | "desc";
+};
+
+export async function listIdeas(params: ListIdeasParams = {}): Promise<IdeasResponse> {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.sort) query.set("sort", params.sort);
+  if (params.order) query.set("order", params.order);
+  const qs = query.toString();
+  return apiCall(`/api/ideas${qs ? `?${qs}` : ""}`);
 }
 
 export async function createIdea(

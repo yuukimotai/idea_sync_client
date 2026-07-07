@@ -16,7 +16,7 @@ Next.js + Material UI による **アイデア管理 + AI 壁打ちフロント�
 - ✅ **httpOnly Cookie 認証** — token を JS から読めない場所に保持し XSS リスクを低減
 - ✅ **BFF プロキシ** — ブラウザは Next.js としか通信せず、サーバー側で Cookie → Bearer に変換して Ruby API へ
 - ✅ **ロールベース表示** — `admin` のみ管理者ページに入れる（一般ユーザーは入口も非表示）
-- ✅ **Ideas CRUD** — 作成・閲覧・編集・削除
+- ✅ **Ideas CRUD** — 作成・閲覧・編集・削除・検索（デバウンス付きインクリメンタル）・並び替え
 - ✅ **AI 壁打ち** — Gemini とのタイムラインチャット
 - ✅ **リアルタイムチャット** — グローバルチャット・会議室チャットともに WebSocket（Falcon :3001）で双方向通信。ルームコード単位でスコープ分離。切断時は指数バックオフで自動再接続
 - ✅ **会議部屋** — パスコード発行・目的タグ付き会議部屋を作成・入室・リアルタイムチャット
@@ -101,7 +101,7 @@ src/
 ├── infrastructure/api/
 │   ├── client.ts                 # /api/proxy 経由の HTTP クライアント
 │   ├── auth_api.ts               # ログイン / 登録
-│   ├── idea_api.ts               # Ideas CRUD
+│   ├── idea_api.ts               # Ideas CRUD + 検索（q / sort / order）
 │   ├── ai_chat_api.ts            # AI 壁打ち
 │   └── meeting_api.ts            # 会議 CRUD + join
 └── shared/
@@ -178,7 +178,7 @@ DB を作り直すと account_id（UUID）が変わり既存 Cookie は無効に
 - [x] 会議室 WS チャット（ルームコード単位でスコープ分離・履歴永続化）
 - [x] 会議内の機能ロール（タイムキーパー / 進行 / 書記 / 発表）
 - [x] WS 切断時の自動再接続（指数バックオフ 1s→30s・接続状態チップ表示）
-- [ ] アイデア検索・フィルタ
+- [x] アイデア検索・フィルタ（検索ボックス + 並び替えセレクト、300ms デバウンス）
 - [ ] テスト（ユニット / E2E）
 - [ ] AWS ECS/Fargate へのデプロイ
 

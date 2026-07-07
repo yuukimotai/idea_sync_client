@@ -24,14 +24,23 @@ export function useWebSocket({ onMessage, onError, enabled, meetingId }: Options
   const retryDelayRef = useRef(BACKOFF_INITIAL);
   // アンマウント / enabled=false による意図的なクローズかどうか
   const intentionalRef = useRef(false);
+  // connect ↔ scheduleRetry の循環参照を避けるための間接参照
+  const connectRef = useRef<() => void>(() => {});
 
   const [status, setStatus] = useState<WsStatus>("disconnected");
 
   useEffect(() => { onMessageRef.current = onMessage; }, [onMessage]);
   useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
+  const scheduleRetry = useCallback(() => {
+    retryTimerRef.current = setTimeout(() => {
+      retryDelayRef.current = Math.min(retryDelayRef.current * 2, BACKOFF_MAX);
+      connectRef.current();
+    }, retryDelayRef.current);
+  }, []);
+
   const connect = useCallback(async () => {
-    setStatus((prev) => prev === "disconnected" ? "connecting" : "reconnecting");
+    setStatus((prev) => (prev === "disconnected" ? "connecting" : "reconnecting"));
 
     let token: string;
     try {
@@ -77,14 +86,9 @@ export function useWebSocket({ onMessage, onError, enabled, meetingId }: Options
       setStatus("reconnecting");
       scheduleRetry();
     };
-  }, [meetingId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [meetingId, scheduleRetry]);
 
-  const scheduleRetry = useCallback(() => {
-    retryTimerRef.current = setTimeout(() => {
-      retryDelayRef.current = Math.min(retryDelayRef.current * 2, BACKOFF_MAX);
-      connect();
-    }, retryDelayRef.current);
-  }, [connect]);
+  useEffect(() => { connectRef.current = connect; }, [connect]);
 
   const send = useCallback((body: string) => {
     wsRef.current?.send(JSON.stringify({ body }));
@@ -93,8 +97,10 @@ export function useWebSocket({ onMessage, onError, enabled, meetingId }: Options
   useEffect(() => {
     if (!enabled) return;
     intentionalRef.current = false;
-    connect();
+    // effect 本体での同期 setState を避けるため接続開始は次タイックに遅延
+    const starter = setTimeout(() => connectRef.current(), 0);
     return () => {
+      clearTimeout(starter);
       intentionalRef.current = true;
       if (retryTimerRef.current) {
         clearTimeout(retryTimerRef.current);
@@ -103,7 +109,7 @@ export function useWebSocket({ onMessage, onError, enabled, meetingId }: Options
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [enabled, connect, meetingId]);
+  }, [enabled, meetingId]);
 
   return { send, status };
 }
