@@ -22,6 +22,7 @@ Next.js + Material UI による **アイデア管理 + AI 壁打ちフロント�
 - ✅ **会議部屋** — パスコード発行・目的タグ付き会議部屋を作成・入室・リアルタイムチャット
 - ✅ **チャット入力** — AI 壁打ち / グローバルチャットとも複数行対応。**Enter で送信・Shift+Enter で改行**（Slack/Discord と同じ慣習）
 - ✅ **TypeScript** — 型安全なコンポーネント
+- ✅ **テスト** — Vitest ユニットテスト（WS 再接続・API クエリ・UI）+ Playwright E2E（登録 → CRUD → 検索 → WS チャット）
 
 ## クイックスタート
 
@@ -153,9 +154,21 @@ npm run build        # ビルド
 npm run start        # 本番モード
 npx tsc --noEmit     # 型チェック
 npm run lint         # ESLint
+npm test             # ユニットテスト（Vitest）
+npm run test:e2e     # E2E（Playwright。compose スタック起動が前提）
 ```
 
-CI（`.github/workflows/ci.yml`）が push / PR ごとに **型チェック + ビルド + Docker ビルド** を実行する。
+### E2E の実行
+
+E2E はフルスタック（`idea_sync_server` 側で `docker compose up -d`）が起動している前提。
+ホストにブラウザ用ライブラリがない場合（WSL2 等）は公式イメージで実行できる:
+
+```bash
+docker run --rm --network host -v "$PWD":/work -w /work \
+  mcr.microsoft.com/playwright:v1.61.1-noble npx playwright test
+```
+
+CI（`.github/workflows/ci.yml`）が push / PR ごとに **型チェック + ユニットテスト + ビルド + Docker ビルド** を実行する（E2E はローカルのみ）。
 デプロイ（`deploy.yml`）は AWS 構築前のため手動トリガー（`workflow_dispatch`）。
 
 ## トラブルシューティング
@@ -179,7 +192,7 @@ DB を作り直すと account_id（UUID）が変わり既存 Cookie は無効に
 - [x] 会議内の機能ロール（タイムキーパー / 進行 / 書記 / 発表）
 - [x] WS 切断時の自動再接続（指数バックオフ 1s→30s・接続状態チップ表示）
 - [x] アイデア検索・フィルタ（検索ボックス + 並び替えセレクト、300ms デバウンス）
-- [ ] テスト（ユニット / E2E）
+- [x] テスト（Vitest 19 examples + Playwright E2E 5 シナリオ、ユニットは CI で実行）
 - [ ] AWS ECS/Fargate へのデプロイ
 
 ## 参考資料
